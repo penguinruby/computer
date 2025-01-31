@@ -5,16 +5,32 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 import undetected_chromedriver as uc
 import pandas as pd
+import pymysql
 
+# options = uc.ChromeOptions()
+
+
+
+service = Service()
 options = uc.ChromeOptions()
+options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
 # setting profile
 options.user_data_dir = "c:\\temp\\profile"
 # another way to set profile is the below (which takes precedence if both variants are used
 options.add_argument('--user-data-dir=c:\\temp\\profile2')
+
+options.add_argument("--disable-gpu")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-setuid-sandbox")
+
 # just some options passing in to skip annoying popups
 options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
-driver = uc.Chrome(options=options)
+# driver = uc.Chrome(options=options)
+driver = uc.Chrome(ervice=service, options=options)
+
+
+
 
 with driver:
     driver.get('https://www.pbtech.co.nz/category/computers/exleased/desktop-pcs')  # known url using cloudflare's "under attack mode"
@@ -51,7 +67,7 @@ for link in pagelinks:
     driver.get(link)
     driver.implicitly_wait(5)
     # 獲取當前頁面的商品連結 
-    for i in range(1,5):
+    for i in range(1,13):
         try:
             productLink = driver.find_element(By.XPATH, f'//*[@id="mainCatList"]/div[5]/div/div[1]/div[{i}]/div/div[3]/div[1]/a').get_attribute('href')
             productLinks.append(productLink)
@@ -59,16 +75,17 @@ for link in pagelinks:
         except:
             break
 
-# for link in pagelinks:
-#     driver.get(link)
-#     driver.implicitly_wait(5)
-#     # 獲取當前頁面的商品連結 
-#     for i in range(14,22):
-#         try:
-#             productLink = driver.find_element(By.XPATH, f'//*[@id="mainCatList"]/div[5]/div/div[1]/div[{i}]/div/div[3]/div[1]/a').get_attribute('href')
-#             productLinks.append(productLink)
-#         except:
-#             break
+for link in pagelinks:
+    driver.get(link)
+    driver.implicitly_wait(5)
+    # 獲取當前頁面的商品連結 
+    for i in range(14,22):
+        try:
+            productLink = driver.find_element(By.XPATH, f'//*[@id="mainCatList"]/div[5]/div/div[1]/div[{i}]/div/div[3]/div[1]/a').get_attribute('href')
+            productLinks.append(productLink)
+            products_count.append(i)
+        except:
+            break
 
 
 for plink in productLinks:
@@ -132,7 +149,8 @@ driver.quit()
 
 
 
-df = pd.DataFrame(product_list)
-print(df.head())
-df.to_csv('Product_list.csv')
+# df = pd.DataFrame(product_list)
+# print(df.head())
+# df.to_csv('Product_lists.csv')
 
+# sql = “INSERT INTO `matches`(`home`,`away`,`h_score`,`a_score`,`year`,`date`,`stage`)VALUES(“+d[0]+’,’+d[1]+’,’+d[2]+’,’+d[3]+’,’+d[4]+",'"+d[5]+"‘,'"+d[6]+"‘)"
