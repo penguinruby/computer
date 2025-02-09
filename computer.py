@@ -5,7 +5,13 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 import undetected_chromedriver as uc
 import pandas as pd
-import pymysql
+import pymysql 
+import mysql.connector
+from mysql.connector import Error
+import os
+import time
+
+
 
 # options = uc.ChromeOptions()
 
@@ -148,60 +154,63 @@ for plink in productLinks:
 driver.quit()
 
 
-
 df = pd.DataFrame(product_list)
 # print(df.head())
 df.to_csv('Product_lists.csv')
 
-# sql = “INSERT INTO `matches`(`home`,`away`,`h_score`,`a_score`,`year`,`date`,`stage`)VALUES(“+d[0]+’,’+d[1]+’,’+d[2]+’,’+d[3]+’,’+d[4]+",'"+d[5]+"‘,'"+d[6]+"‘)"
-
-#讀取資料
-computer_sql = pd.read_csv("C:\\Users\\user\\Desktop\\python\\computer\\Product_list.csv", header=False, nrow =121, encoding = "utf8")
 
 #連接資料庫
-try:
-    conn = MySQLdb.connect(host = "localhost", user = "root", password = "my_password", port = 33064)
-    cursor = conn.cursor()
+conn = mysql.connector.connect(host = "localhost", database = "computer", user = "root", password = "root", port = 33064)
 
-    #建立資料庫
-    creatdb = """CREATE DATABASE IF NOT EXISTS smentertainment
-                      CHARACTER SET utf8m4
-                      COLLATE utf8m4_0900_ai_ci"""
-    cursor.execute(creatdb)
-    
-    #使用資料庫
-    cursor.execute("USE smentertainmennt")
-    #建立表格
-    creatdb = """CREATE TABLE IF NOT EXISTS Computer list(
-            Store CHAR(55),
-            Item count INT,
-            Products Name TEXT,
-            Price INT,
-            promo Price INT,
-            Description TEXT,
-            Product URL VARCHAR(255),
-            Product Picture URL VARCHAR(255))"""
-    cursor.execute(creatdb)
-    conn.commit()
+#建立資料庫
+if conn.is_connected():
+    cur = conn.cursor()
+    cur.execute("SELECT DATABASE();")
+    record = cur.fetchone()
 
-    #將資料寫入表格
+Data = os.path.join("C:\\Users\\user\\Desktop\\python\\computer\\Product_list.csv")
+df = pd.read_csv(Data)
+df = df.astype("str")
+df.head()
+
+#insrt
+t0=time.time()
+columns = ",".join([f'{x}' for x in df.columns])
+param_placeholders = ",".join(["%s" for x in range(len(df.columns))])
+
+def insert(*args):
     try:
-        for i in range(len(computer_sql)):
-            insert_form = """INSERT INTO Computer(Store,Item count,
-            Products Name,Price,promo Price,Description,Product URL,
-            Product Picture URL)VALUES (%s, %s, %s)"""
-
-            var = computer_sql,iloc[i,1],computer_sql.iloc[i,2],computer_sql.iloc[i,3],computer_sql.iloc[i,4],computer_sql.iloc[i,5],computer_sql.iloc[i,6],computer_sql.iloc[i,7],computer_sql.iloc[i,8]
-            cursor.execute(insert_form,var)
+        insert_statement = f"INSERT INTO profile({columns}) VALUES ({param_placeholders})"
+        cur.execute(insert_statement, args)
         conn.commit()
+    except Error as e:
+        print(f"Error adding entry to database: {e}")
 
-    except Exception as e:
-        print(e)
-except Exception as e:
-    print(e)
+for i in range(len(df)):
+    insert(*df.iloc[i])
 
-finally:
-    cursor.close()
+#update
+columns = df.columns.tolist() 
+param_placeholders =",".join ([f'{col}=%s' for col in columns if col != "Item No"])
+
+def update(row):
+    try:
+        update_statement = f"UPDATE profile SET {param_placeholders} WHERE Item No = %s"
+        data = tuple(row[col] for col in columns if col != "Item No") + (row["Item No"],)
+        cur.execute(update_statement, data)
+        conn.commit()
+    except Error as e:
+        print(f"Error updating entry to database: {e}")
+
+t0 = time.time
+for index, row in df.iterrows():
+    update(row)
+
+if conn.is_connected():
     conn.close()
+else:
+    print("資料庫連線未開啟。")
+
+
 
 
