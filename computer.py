@@ -13,9 +13,6 @@ import time
 
 
 
-# options = uc.ChromeOptions()
-
-
 
 service = Service()
 options = uc.ChromeOptions()
@@ -25,15 +22,24 @@ options.add_experimental_option('excludeSwitches', ['enable-logging'])
 options.user_data_dir = "c:\\temp\\profile"
 # another way to set profile is the below (which takes precedence if both variants are used
 options.add_argument('--user-data-dir=c:\\temp\\profile2')
-
 options.add_argument("--disable-gpu")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-setuid-sandbox")
-
+options.add_argument("user-data-dir=/path/to/your/custom/profile")
 # just some options passing in to skip annoying popups
 options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
+options.add_experimental_option("debuggerAddress", "127.0.0.1:38947")
+
 # driver = uc.Chrome(options=options)
 driver = uc.Chrome(ervice=service, options=options)
+
+
+
+caps = webdriver.DesiredCapabilities.CHROME.copy() 
+caps['acceptInsecureCerts'] = True
+driver = webdriver.Chrome(desired_capabilities=caps)
+
+
 
 
 
@@ -44,10 +50,17 @@ with driver:
 driver.implicitly_wait(10)
 wait = WebDriverWait(driver, 10)
 
+#human check
+humancheck = driver.find_element(By.XPATH, '//*[@id="EQIhq6"]/div/label/span[1]')
+humancheck.click()
+#check  human  //*[@id="EQIhq6"]/div/label
+
+
+
+
 #total product OK
 total_product= (driver.find_element(By.XPATH, '//*[@id="sortGroupForm"]/div[1]/div/span[1]').text).split()
 total_products = int(total_product[0])
-
 
 productNames=[] #商品名稱-
 prices = [] #價格-
@@ -149,67 +162,67 @@ for plink in productLinks:
 
 
     product_list.append(product_info)
-        
+
+time.sleep(30)        
 # print(product_list)
 driver.quit()
-
 
 df = pd.DataFrame(product_list)
 # print(df.head())
 df.to_csv('Product_lists.csv')
 
 
-#連接資料庫
-conn = mysql.connector.connect(host = "localhost", database = "computer", user = "root", password = "root", port = 33064)
+# #連接資料庫
+# conn = mysql.connector.connect(host = "localhost", database = "computer", user = "root", password = "root", port = 33064)
 
-#建立資料庫
-if conn.is_connected():
-    cur = conn.cursor()
-    cur.execute("SELECT DATABASE();")
-    record = cur.fetchone()
+# #建立資料庫
+# if conn.is_connected():
+#     cur = conn.cursor()
+#     cur.execute("SELECT DATABASE();")
+#     record = cur.fetchone()
 
-Data = os.path.join("C:\\Users\\user\\Desktop\\python\\computer\\Product_list.csv")
-df = pd.read_csv(Data)
-df = df.astype("str")
-df.head()
+# Data = os.path.join("C:\\Users\\user\\Desktop\\python\\computer\\Product_list.csv")
+# df = pd.read_csv(Data)
+# df = df.astype("str")
+# df.head()
 
-#insrt
-t0=time.time()
-columns = ",".join([f'{x}' for x in df.columns])
-param_placeholders = ",".join(["%s" for x in range(len(df.columns))])
+# #insrt
+# t0=time.time()
+# columns = ",".join([f'{x}' for x in df.columns])
+# param_placeholders = ",".join(["%s" for x in range(len(df.columns))])
 
-def insert(*args):
-    try:
-        insert_statement = f"INSERT INTO profile({columns}) VALUES ({param_placeholders})"
-        cur.execute(insert_statement, args)
-        conn.commit()
-    except Error as e:
-        print(f"Error adding entry to database: {e}")
+# def insert(*args):
+#     try:
+#         insert_statement = f"INSERT INTO profile({columns}) VALUES ({param_placeholders})"
+#         cur.execute(insert_statement, args)
+#         conn.commit()
+#     except Error as e:
+#         print(f"Error adding entry to database: {e}")
 
-for i in range(len(df)):
-    insert(*df.iloc[i])
+# for i in range(len(df)):
+#     insert(*df.iloc[i])
 
-#update
-columns = df.columns.tolist() 
-param_placeholders =",".join ([f'{col}=%s' for col in columns if col != "Item No"])
+# #update
+# columns = df.columns.tolist() 
+# param_placeholders =",".join ([f'{col}=%s' for col in columns if col != "Item No"])
 
-def update(row):
-    try:
-        update_statement = f"UPDATE profile SET {param_placeholders} WHERE Item No = %s"
-        data = tuple(row[col] for col in columns if col != "Item No") + (row["Item No"],)
-        cur.execute(update_statement, data)
-        conn.commit()
-    except Error as e:
-        print(f"Error updating entry to database: {e}")
+# def update(row):
+#     try:
+#         update_statement = f"UPDATE profile SET {param_placeholders} WHERE Item No = %s"
+#         data = tuple(row[col] for col in columns if col != "Item No") + (row["Item No"],)
+#         cur.execute(update_statement, data)
+#         conn.commit()
+#     except Error as e:
+#         print(f"Error updating entry to database: {e}")
 
-t0 = time.time
-for index, row in df.iterrows():
-    update(row)
+# t0 = time.time
+# for index, row in df.iterrows():
+#     update(row)
 
-if conn.is_connected():
-    conn.close()
-else:
-    print("資料庫連線未開啟。")
+# if conn.is_connected():
+#     conn.close()
+# else:
+#     print("資料庫連線未開啟。")
 
 
 
